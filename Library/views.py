@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import permission_required
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import permission_required, login_required
+from django.core.files.storage import default_storage
 
 import Resources
 from . import views, forms, models
@@ -18,6 +19,8 @@ from xhtml2pdf import pisa
 from django.contrib.staticfiles import finders
 from django.core.mail import send_mail
 
+import csv
+from io import TextIOWrapper
 
 
 # Create your views here.
@@ -37,21 +40,47 @@ def manage(request):
 @login_required
 def addbook_view(request):
     #now it is empty book form for sending to html
-    form=forms.BookForm()
+    
+    form= forms.BookForm()
+    csv_form = forms.CSVUploadForm()
+
     if request.method=='POST':
         #now this form have data from html
-        form=forms.BookForm(request.POST)
-        if form.is_valid():
-            if(models.Book.objects.filter(isbn = form.cleaned_data['isbn']).exists()):
-              messages.warning(request, 'Alert! Book Already Exits.')
-              return HttpResponseRedirect(request.path_info)
+        if 'submit_book' in request.POST:
+            form=forms.BookForm(request.POST)
+            if form.is_valid():
+                if(models.Book.objects.filter(isbn = form.cleaned_data['isbn']).exists()):
+                    messages.warning(request, 'Alert! Book Already Exits.')
+                    return HttpResponseRedirect(request.path_info)
+                else:
+                    user=form.save()
+                    # return render(request,'library/bookadded.html')
+                    messages.success(request, 'Success! Book Added Successfully.')
+                    return HttpResponseRedirect(request.path_info)
+    
+        elif 'submit_csv' in request.POST:
+            csv_form = forms.CSVUploadForm(request.POST, request.FILES)
+            if csv_form.is_valid():
+                csv_file = request.FILES['csv_file']
+                csv_file = TextIOWrapper(csv_file.file, encoding=request.encoding)
+                csv_reader = csv.DictReader(csv_file)
+                books_added = 0
+                for row in csv_reader:
+                    if not models.Book.objects.filter(isbn=row['isbn']).exists():
+                        models.Book.objects.create(
+                            name=row['name'],
+                            isbn=row['isbn'],
+                            author=row['author'],
+                            quantity=row['quantity'],
+                            category=row['category']
+                        )
+                        books_added += 1
+                messages.success(request, f'Success! {books_added} Books Added from CSV.')
+                return HttpResponseRedirect(request.path_info)
             else:
-              user=form.save()
-              # return render(request,'library/bookadded.html')
-              messages.success(request, 'Success! Book Added Successfully.')
-              return HttpResponseRedirect(request.path_info)
+                messages.error(request, 'Error in CSV file. Please check the format.')
 
-    return render(request,'library/addbook.html',{'form':form})
+    return render(request,'library/addbook.html', {'form':form, 'csv_form' : csv_form})
 
 @login_required
 def viewbooks_view(request):

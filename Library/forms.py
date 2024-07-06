@@ -34,3 +34,6 @@ class IssuedBookForm(forms.Form):
     #         # 'category': forms.Select({'class': 'form-control'})
     #     }
     
+
+class CSVUploadForm(forms.Form):
+    csv_file = forms.FileField(widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))

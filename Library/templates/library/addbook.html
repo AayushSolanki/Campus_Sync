@@ -70,7 +70,13 @@
                       <p>{{ Search.Contact }}</p>
                       <strong><em>-OR-</em></strong>
                       <p>{{ Search.Enrollment }}</p> -->
-                      <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Book</button>
+                      <button type="submit" name="submit_book" class="btn btn-success"><i class="fas fa-plus"></i>&nbsp;&nbsp;Add Book</button>
+                    </form>
+                    <br>
+                    <form method="POST" enctype="multipart/form-data" id="csv-form">
+                      {% csrf_token %}
+                      {{ csv_form.as_p }}
+                      <button type="submit" name="submit_csv" class="btn btn-success" onclick="disableBookFormFields()"><i class="fas fa-plus"></i>&nbsp;&nbsp;Add CSV</button>
                     </form>
                   </div>
                 </div>
@@ -98,6 +104,13 @@
         //Event code end here
         $("#sidebarToggleTop").trigger("click"); //trigger its click
       });
+
+      function disableBookFormFields() {
+            var bookFormFields = document.querySelectorAll('#book-form input, #book-form select');
+            bookFormFields.forEach(function(field) {
+                field.disabled = true;
+            });
+        }
     </script>
 </body>
 
